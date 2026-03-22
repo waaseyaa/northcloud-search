@@ -63,6 +63,13 @@
             "chmod +x bin/waaseyaa"
         ]
     },
+    "extra": {
+        "waaseyaa": {
+            "providers": [
+                "App\\Provider\\AppServiceProvider"
+            ]
+        }
+    },
     "minimum-stability": "dev",
     "prefer-stable": true
 }
