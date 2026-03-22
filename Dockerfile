@@ -1,0 +1,22 @@
+FROM php:8.4-cli-alpine
+
+RUN apk add --no-cache sqlite-dev \
+    && docker-php-ext-install pdo_sqlite
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+WORKDIR /app
+
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+
+COPY . .
+
+# Run install to create sqlite DB and initial config
+RUN php bin/waaseyaa install --no-interaction 2>/dev/null || true
+
+ENV NORTHCLOUD_API_URL=http://search:8092
+
+EXPOSE 3003
+
+CMD ["php", "-S", "0.0.0.0:3003", "-t", "public"]

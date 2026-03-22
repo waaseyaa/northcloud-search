@@ -1,0 +1,9 @@
+.git
+.gitignore
+vendor
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite-journal
+storage/
+.env
