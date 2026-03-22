@@ -19,11 +19,11 @@ final class NorthCloudClient
     }
 
     /**
-     * @return array{hits: list<array<string, mixed>>, total: int, facets: array<string, array<string, int>>}
+     * @return array{hits: list<array<string, mixed>>, total_hits: int, total_pages: int, current_page: int}
      */
-    public function search(string $query, int $from = 0, int $size = 10, array $topics = [], array $sources = []): array
+    public function search(string $query, int $page = 1, int $size = 10, array $topics = [], array $sources = []): array
     {
-        $body = ['query' => $query, 'from' => $from, 'size' => $size];
+        $body = ['query' => $query, 'page' => $page, 'size' => $size];
         if ($topics !== []) {
             $body['topics'] = $topics;
         }

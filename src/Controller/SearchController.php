@@ -25,29 +25,34 @@ final class SearchController
     ): SsrResponse {
         $searchQuery = trim($query['q'] ?? '');
         $page = max(1, (int) ($query['page'] ?? 1));
-        $size = 10;
-        $from = ($page - 1) * $size;
 
         $topics = array_filter(explode(',', $query['topics'] ?? ''));
         $sources = array_filter(explode(',', $query['sources'] ?? ''));
 
         $results = [];
         $total = 0;
-        $facets = ['topics' => [], 'sources' => []];
+        $totalPages = 0;
         $error = false;
 
         if ($searchQuery !== '') {
             try {
-                $data = $this->client->search($searchQuery, $from, $size, $topics, $sources);
+                $data = $this->client->search($searchQuery, $page, 10, $topics, $sources);
                 $results = $data['hits'] ?? [];
-                $total = $data['total'] ?? 0;
-                $facets = $data['facets'] ?? $facets;
+                $total = $data['total_hits'] ?? 0;
+                $totalPages = $data['total_pages'] ?? 0;
             } catch (\Throwable) {
                 $error = true;
             }
         }
 
-        $totalPages = (int) ceil($total / $size);
+        // Build topic facets from hit data (API doesn't return aggregated facets)
+        $topicCounts = [];
+        foreach ($results as $hit) {
+            foreach ($hit['topics'] ?? [] as $topic) {
+                $topicCounts[$topic] = ($topicCounts[$topic] ?? 0) + 1;
+            }
+        }
+        arsort($topicCounts);
 
         $html = $this->twig->render('search.html.twig', [
             'query' => $searchQuery,
@@ -55,7 +60,7 @@ final class SearchController
             'total' => $total,
             'page' => $page,
             'totalPages' => $totalPages,
-            'facets' => $facets,
+            'topicCounts' => $topicCounts,
             'activeTopics' => $topics,
             'activeSources' => $sources,
             'error' => $error,

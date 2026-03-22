@@ -64,31 +64,15 @@
     {% if query and not error %}
       <div class="results-layout">
         <aside class="facets">
-          {% if facets.topics is not empty %}
+          {% if topicCounts is not empty %}
           <h3>Topics</h3>
           <ul class="facet-list">
-            {% for topic, count in facets.topics %}
+            {% for topic, count in topicCounts %}
               <li>
                 {% if topic in activeTopics %}
                   <a href="/search?q={{ query|url_encode }}&topics={{ activeTopics|filter(t => t != topic)|join(',') }}" class="active">{{ topic|replace({'_': ' '})|title }}</a>
                 {% else %}
                   <a href="/search?q={{ query|url_encode }}&topics={{ (activeTopics|merge([topic]))|join(',') }}">{{ topic|replace({'_': ' '})|title }}</a>
-                {% endif %}
-                <span class="facet-count">({{ count }})</span>
-              </li>
-            {% endfor %}
-          </ul>
-          {% endif %}
-
-          {% if facets.sources is not empty %}
-          <h3>Sources</h3>
-          <ul class="facet-list">
-            {% for source, count in facets.sources %}
-              <li>
-                {% if source in activeSources %}
-                  <a href="/search?q={{ query|url_encode }}&sources={{ activeSources|filter(s => s != source)|join(',') }}" class="active">{{ source|replace({'_': ' '})|title }}</a>
-                {% else %}
-                  <a href="/search?q={{ query|url_encode }}&sources={{ (activeSources|merge([source]))|join(',') }}">{{ source|replace({'_': ' '})|title }}</a>
                 {% endif %}
                 <span class="facet-count">({{ count }})</span>
               </li>
@@ -126,9 +110,9 @@
             <h2 class="result-title"><a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a></h2>
             <div class="result-meta">
               {{ item.source_name|default('Unknown') }}
-              {% if item.published_at %} &middot; {{ item.published_at }}{% endif %}
+              {% if item.published_date %} &middot; {{ item.published_date }}{% endif %}
             </div>
-            {% if item.snippet %}<p class="result-snippet">{{ item.snippet|raw }}</p>{% endif %}
+            {% if item.highlight is defined and item.highlight.body is defined %}<p class="result-snippet">{{ item.highlight.body|join(' ... ')|raw }}</p>{% endif %}
           </article>
           {% endfor %}
 

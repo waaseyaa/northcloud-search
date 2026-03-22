@@ -64,7 +64,7 @@
         {% for story in topStories %}
         <a href="{{ story.url }}" target="_blank" rel="noopener" class="story-card">
           <h3>{{ story.title }}</h3>
-          <div class="meta">{{ story.source_name|default('Unknown') }}{% if story.published_at %} &middot; {{ story.published_at }}{% endif %}</div>
+          <div class="meta">{{ story.source_name|default('Unknown') }}{% if story.published_date %} &middot; {{ story.published_date }}{% endif %}</div>
         </a>
         {% endfor %}
       </div>

@@ -37,7 +37,7 @@ final class HomeController
         $topStories = [];
 
         try {
-            $data = $this->client->search('*', 0, 6, ['top_stories']);
+            $data = $this->client->search('*', 1, 6, ['top_stories']);
             $topStories = $data['hits'] ?? [];
         } catch (\Throwable) {
             // Homepage still renders without stories
