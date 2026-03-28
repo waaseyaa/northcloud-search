@@ -1,0 +1,55 @@
+<script>
+(function() {
+  var input = document.getElementById('search-input');
+  var dropdown = document.getElementById('suggest-dropdown');
+  var timer = null;
+  var activeIdx = -1;
+
+  input.addEventListener('input', function() {
+    clearTimeout(timer);
+    var q = this.value.trim();
+    if (q.length < 2) { dropdown.classList.remove('open'); return; }
+    timer = setTimeout(function() { fetchSuggestions(q); }, 300);
+  });
+
+  input.addEventListener('keydown', function(e) {
+    var items = dropdown.querySelectorAll('.suggest-item');
+    if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = Math.min(activeIdx + 1, items.length - 1); highlight(items); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); activeIdx = Math.max(activeIdx - 1, 0); highlight(items); }
+    else if (e.key === 'Enter' && activeIdx >= 0 && items[activeIdx]) { e.preventDefault(); window.location = '/search?q=' + encodeURIComponent(items[activeIdx].textContent); }
+    else if (e.key === 'Escape') { dropdown.classList.remove('open'); activeIdx = -1; }
+  });
+
+  document.addEventListener('click', function(e) {
+    if (!input.contains(e.target) && !dropdown.contains(e.target)) { dropdown.classList.remove('open'); }
+  });
+
+  function fetchSuggestions(q) {
+    fetch('/api/suggest?q=' + encodeURIComponent(q))
+      .then(function(r) { return r.json(); })
+      .then(function(items) {
+        if (!items.length) { dropdown.classList.remove('open'); return; }
+        activeIdx = -1;
+        while (dropdown.firstChild) { dropdown.removeChild(dropdown.firstChild); }
+        items.forEach(function(suggestion) {
+          var div = document.createElement('div');
+          div.className = 'suggest-item';
+          div.textContent = suggestion;
+          div.addEventListener('click', function() {
+            window.location = '/search?q=' + encodeURIComponent(suggestion);
+          });
+          dropdown.appendChild(div);
+        });
+        dropdown.classList.add('open');
+      })
+      .catch(function() { dropdown.classList.remove('open'); });
+  }
+
+  function highlight(items) {
+    for (var i = 0; i < items.length; i++) {
+      if (i === activeIdx) { items[i].classList.add('active'); }
+      else { items[i].classList.remove('active'); }
+    }
+  }
+})();
+</script>

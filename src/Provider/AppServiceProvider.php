@@ -19,9 +19,7 @@ final class AppServiceProvider extends ServiceProvider
     {
         $this->singleton(SearchIndexerInterface::class, function () {
             $database = $this->resolve(DatabaseInterface::class);
-            $indexer = new Fts5SearchIndexer($database);
-            $indexer->ensureSchema();
-            return $indexer;
+            return new Fts5SearchIndexer($database);
         });
 
         $this->singleton(SearchProviderInterface::class, function () {
@@ -73,6 +71,7 @@ final class AppServiceProvider extends ServiceProvider
         \Symfony\Contracts\EventDispatcher\EventDispatcherInterface $dispatcher,
     ): array {
         $indexer = new Fts5SearchIndexer($database);
+        $indexer->ensureSchema();
 
         return [
             new \App\Command\SubscribeCommand($indexer),
