@@ -19,9 +19,7 @@ final class AppServiceProvider extends ServiceProvider
     {
         $this->singleton(SearchIndexerInterface::class, function () {
             $database = $this->resolve(DatabaseInterface::class);
-            $indexer = new Fts5SearchIndexer($database);
-            $indexer->ensureSchema();
-            return $indexer;
+            return new Fts5SearchIndexer($database);
         });
 
         $this->singleton(SearchProviderInterface::class, function () {
@@ -29,6 +27,14 @@ final class AppServiceProvider extends ServiceProvider
             $indexer = $this->resolve(SearchIndexerInterface::class);
             return new Fts5SearchProvider($database, $indexer);
         });
+    }
+
+    public function boot(): void
+    {
+        $indexer = $this->resolve(SearchIndexerInterface::class);
+        if ($indexer instanceof Fts5SearchIndexer) {
+            $indexer->ensureSchema();
+        }
     }
 
     public function routes(WaaseyaaRouter $router, ?\Waaseyaa\Entity\EntityTypeManager $entityTypeManager = null): void
