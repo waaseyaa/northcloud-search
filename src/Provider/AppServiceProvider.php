@@ -19,7 +19,9 @@ final class AppServiceProvider extends ServiceProvider
     {
         $this->singleton(SearchIndexerInterface::class, function () {
             $database = $this->resolve(DatabaseInterface::class);
-            return new Fts5SearchIndexer($database);
+            $indexer = new Fts5SearchIndexer($database);
+            $indexer->ensureSchema();
+            return $indexer;
         });
 
         $this->singleton(SearchProviderInterface::class, function () {

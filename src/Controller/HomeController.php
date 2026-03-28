@@ -23,8 +23,13 @@ final class HomeController
         AccountInterface $account,
         Request $httpRequest,
     ): SsrResponse {
-        $recentItems = $this->fetchRecent(12);
-        $typeCounts = $this->fetchTypeCounts();
+        try {
+            $recentItems = $this->fetchRecent(12);
+            $typeCounts = $this->fetchTypeCounts();
+        } catch (\Throwable) {
+            $recentItems = [];
+            $typeCounts = [];
+        }
 
         $html = $this->twig->render('home.html.twig', [
             'recentItems' => $recentItems,
