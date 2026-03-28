@@ -1,143 +1,93 @@
 {% extends "base.html.twig" %}
 
-{% block title %}{% if query %}{{ query }} — North Cloud{% else %}Search — North Cloud{% endif %}{% endblock %}
-
-{% block styles %}
-    .search-page { padding: 32px 0; }
-    .search-hero { margin-bottom: 32px; }
-
-    .results-layout { display: grid; grid-template-columns: 200px 1fr; gap: 32px; }
-    @media (max-width: 768px) { .results-layout { grid-template-columns: 1fr; } }
-
-    .facets h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; margin-bottom: 8px; }
-    .facet-list { list-style: none; margin-bottom: 24px; }
-    .facet-list li { margin-bottom: 4px; }
-    .facet-list a { font-size: 0.85rem; color: #cbd5e1; }
-    .facet-list a:hover { color: #38bdf8; }
-    .facet-list .active { color: #38bdf8; font-weight: 600; }
-    .facet-count { color: #64748b; font-size: 0.8rem; }
-
-    .results-header { margin-bottom: 20px; font-size: 0.85rem; color: #94a3b8; }
-
-    .result-item { margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid #1e293b; }
-    .result-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 4px; }
-    .result-title a { color: #f8fafc; }
-    .result-title a:hover { color: #38bdf8; }
-    .result-meta { font-size: 0.8rem; color: #64748b; margin-bottom: 8px; }
-    .result-snippet { font-size: 0.9rem; color: #cbd5e1; }
-    .result-snippet em { color: #fbbf24; font-style: normal; font-weight: 600; }
-
-    .pagination { display: flex; gap: 8px; margin-top: 32px; }
-    .pagination a, .pagination span {
-      padding: 6px 14px; border-radius: 6px; font-size: 0.85rem;
-      border: 1px solid #334155; color: #94a3b8;
-    }
-    .pagination a:hover { border-color: #38bdf8; color: #38bdf8; text-decoration: none; }
-    .pagination .current { background: #38bdf8; color: #0f172a; border-color: #38bdf8; font-weight: 600; }
-
-    .active-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-    .filter-tag {
-      display: inline-flex; align-items: center; gap: 4px;
-      padding: 4px 10px; background: #1e293b; border: 1px solid #475569;
-      border-radius: 9999px; font-size: 0.8rem; color: #cbd5e1;
-    }
-    .filter-tag a { color: #f87171; font-weight: 700; }
-
-    .error-msg { background: #7f1d1d; border: 1px solid #991b1b; border-radius: 8px; padding: 16px; color: #fecaca; margin-bottom: 24px; }
-    .empty-msg { color: #64748b; font-size: 0.95rem; padding: 40px 0; text-align: center; }
-{% endblock %}
+{% block title %}{% if query %}{{ query }} — {% endif %}Search — North Cloud{% endblock %}
 
 {% block body %}
-<main class="search-page">
+<main style="padding: 32px 0;">
   <div class="container">
-    <div class="search-hero">
+    <div style="margin-bottom: 32px;">
       <form action="/search" method="get" class="search-wrap">
         <input type="text" name="q" class="search-input" placeholder="Search North Cloud..." value="{{ query }}" autocomplete="off" id="search-input">
         <div class="suggest-dropdown" id="suggest-dropdown"></div>
       </form>
     </div>
 
-    {% if error %}
-      <div class="error-msg">Search is temporarily unavailable. Please try again later.</div>
-    {% endif %}
+    {% if result %}
+      <div class="search-layout">
+        <aside>
+          {% set typeFacet = result.getFacet('content_type') %}
+          {% if typeFacet %}
+            <div class="facet-group">
+              <h3>Content Type</h3>
+              {% for bucket in typeFacet.buckets %}
+                <a href="/search?q={{ query|url_encode }}&type={{ bucket.key }}&topic={{ activeTopic }}"
+                   class="facet-item {% if activeType == bucket.key %}active{% endif %}">
+                  {{ bucket.key|replace({'_': ' '})|capitalize }} <span class="count">{{ bucket.count }}</span>
+                </a>
+              {% endfor %}
+              {% if activeType %}
+                <a href="/search?q={{ query|url_encode }}&topic={{ activeTopic }}" class="facet-clear">Clear filter</a>
+              {% endif %}
+            </div>
+          {% endif %}
 
-    {% if query and not error %}
-      <div class="results-layout">
-        <aside class="facets">
-          {% if topicCounts is not empty %}
-          <h3>Topics</h3>
-          <ul class="facet-list">
-            {% for topic, count in topicCounts %}
-              <li>
-                {% if topic in activeTopics %}
-                  <a href="/search?q={{ query|url_encode }}&topics={{ activeTopics|filter(t => t != topic)|join(',') }}" class="active">{{ topic|replace({'_': ' '})|title }}</a>
-                {% else %}
-                  <a href="/search?q={{ query|url_encode }}&topics={{ (activeTopics|merge([topic]))|join(',') }}">{{ topic|replace({'_': ' '})|title }}</a>
-                {% endif %}
-                <span class="facet-count">({{ count }})</span>
-              </li>
-            {% endfor %}
-          </ul>
+          {% set topicFacet = result.getFacet('topics') %}
+          {% if topicFacet %}
+            <div class="facet-group">
+              <h3>Topics</h3>
+              {% for bucket in topicFacet.buckets|slice(0, 15) %}
+                <a href="/search?q={{ query|url_encode }}&type={{ activeType }}&topic={{ bucket.key }}"
+                   class="facet-item {% if activeTopic == bucket.key %}active{% endif %}">
+                  {{ bucket.key|replace({'_': ' '}) }} <span class="count">{{ bucket.count }}</span>
+                </a>
+              {% endfor %}
+              {% if activeTopic %}
+                <a href="/search?q={{ query|url_encode }}&type={{ activeType }}" class="facet-clear">Clear filter</a>
+              {% endif %}
+            </div>
           {% endif %}
         </aside>
 
-        <div class="results-main">
-          {% if activeTopics is not empty or activeSources is not empty %}
-          <div class="active-filters">
-            {% for topic in activeTopics %}
-              <span class="filter-tag">{{ topic|replace({'_': ' '})|title }} <a href="/search?q={{ query|url_encode }}&topics={{ activeTopics|filter(t => t != topic)|join(',') }}">&times;</a></span>
-            {% endfor %}
-            {% for source in activeSources %}
-              <span class="filter-tag">{{ source|replace({'_': ' '})|title }} <a href="/search?q={{ query|url_encode }}&sources={{ activeSources|filter(s => s != source)|join(',') }}">&times;</a></span>
-            {% endfor %}
-          </div>
-          {% endif %}
+        <div>
+          <p class="result-count">{{ result.totalHits }} result{{ result.totalHits != 1 ? 's' : '' }} ({{ result.tookMs }}ms)</p>
 
-          <div class="results-header">
-            {% if total > 0 %}
-              {{ total }} result{{ total != 1 ? 's' : '' }} for "{{ query }}"
-            {% endif %}
-          </div>
-
-          {% if results is empty and not error %}
-            <div class="empty-msg">
-              {% if query %}No results found for "{{ query }}". Try different keywords.{% else %}Enter a search term above.{% endif %}
-            </div>
-          {% endif %}
-
-          {% for item in results %}
-          <article class="result-item">
-            <h2 class="result-title"><a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a></h2>
-            <div class="result-meta">
-              {{ item.source_name|default('Unknown') }}
-              {% if item.published_date %} &middot; {{ item.published_date }}{% endif %}
-            </div>
-            {% if item.highlight is defined and item.highlight.body is defined %}<p class="result-snippet">{{ item.highlight.body|join(' ... ')|raw }}</p>{% endif %}
-          </article>
+          {% for hit in result.hits %}
+            <article class="result-card">
+              {% if hit.ogImage %}
+                <img src="{{ hit.ogImage }}" alt="" class="result-thumb" loading="lazy">
+              {% endif %}
+              <div class="result-content">
+                <h2><a href="/content/{{ hit.id }}">{{ hit.title }}</a></h2>
+                {% if hit.highlight %}
+                  <p class="snippet">{{ hit.highlight|raw }}</p>
+                {% endif %}
+                <div class="result-meta">
+                  <span class="badge badge-{{ hit.contentType }}">{{ hit.contentType }}</span>
+                  <span>{{ hit.sourceName }}</span>
+                  <time datetime="{{ hit.crawledAt }}">{{ hit.crawledAt|date('M j, Y') }}</time>
+                </div>
+              </div>
+            </article>
           {% endfor %}
 
-          {% if totalPages > 1 %}
-          <nav class="pagination">
-            {% if page > 1 %}
-              <a href="/search?q={{ query|url_encode }}&page={{ page - 1 }}{% if activeTopics %}&topics={{ activeTopics|join(',') }}{% endif %}{% if activeSources %}&sources={{ activeSources|join(',') }}{% endif %}">&laquo; Prev</a>
-            {% endif %}
-            {% set maxPage = totalPages > 10 ? 10 : totalPages %}
-            {% for p in 1..maxPage %}
-              {% if p == page %}
-                <span class="current">{{ p }}</span>
-              {% else %}
-                <a href="/search?q={{ query|url_encode }}&page={{ p }}{% if activeTopics %}&topics={{ activeTopics|join(',') }}{% endif %}{% if activeSources %}&sources={{ activeSources|join(',') }}{% endif %}">{{ p }}</a>
+          {% if result.totalPages > 1 %}
+            <nav class="pagination">
+              {% if result.currentPage > 1 %}
+                <a href="/search?q={{ query|url_encode }}&page={{ result.currentPage - 1 }}&type={{ activeType }}&topic={{ activeTopic }}">&laquo; Prev</a>
               {% endif %}
-            {% endfor %}
-            {% if page < totalPages %}
-              <a href="/search?q={{ query|url_encode }}&page={{ page + 1 }}{% if activeTopics %}&topics={{ activeTopics|join(',') }}{% endif %}{% if activeSources %}&sources={{ activeSources|join(',') }}{% endif %}">Next &raquo;</a>
-            {% endif %}
-          </nav>
+              <span>Page {{ result.currentPage }} of {{ result.totalPages }}</span>
+              {% if result.currentPage < result.totalPages %}
+                <a href="/search?q={{ query|url_encode }}&page={{ result.currentPage + 1 }}&type={{ activeType }}&topic={{ activeTopic }}">Next &raquo;</a>
+              {% endif %}
+            </nav>
           {% endif %}
         </div>
       </div>
-    {% elseif not error %}
-      <div class="empty-msg">Enter a search term above to get started.</div>
+
+    {% elseif query %}
+      <div class="no-results">No results found for "{{ query }}"</div>
+    {% else %}
+      <div class="search-hint">Enter a search query above to find content across the North Cloud pipeline.</div>
     {% endif %}
   </div>
 </main>
@@ -176,7 +126,6 @@
       .then(function(items) {
         if (!items.length) { dropdown.classList.remove('open'); return; }
         activeIdx = -1;
-        // Clear and rebuild dropdown using safe DOM methods
         while (dropdown.firstChild) { dropdown.removeChild(dropdown.firstChild); }
         items.forEach(function(suggestion) {
           var div = document.createElement('div');

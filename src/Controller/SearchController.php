@@ -4,17 +4,19 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Support\NorthCloudClient;
 use Symfony\Component\HttpFoundation\Request;
 use Twig\Environment;
 use Waaseyaa\Access\AccountInterface;
+use Waaseyaa\Search\SearchFilters;
+use Waaseyaa\Search\SearchProviderInterface;
+use Waaseyaa\Search\SearchRequest;
 use Waaseyaa\SSR\SsrResponse;
 
 final class SearchController
 {
     public function __construct(
         private readonly Environment $twig,
-        private readonly NorthCloudClient $client,
+        private readonly SearchProviderInterface $search,
     ) {}
 
     public function results(
@@ -25,45 +27,29 @@ final class SearchController
     ): SsrResponse {
         $searchQuery = trim($query['q'] ?? '');
         $page = max(1, (int) ($query['page'] ?? 1));
+        $contentType = trim($query['type'] ?? '');
+        $topic = trim($query['topic'] ?? '');
 
-        $topics = array_filter(explode(',', $query['topics'] ?? ''));
-        $sources = array_filter(explode(',', $query['sources'] ?? ''));
-
-        $results = [];
-        $total = 0;
-        $totalPages = 0;
-        $error = false;
-
+        $result = null;
         if ($searchQuery !== '') {
-            try {
-                $data = $this->client->search($searchQuery, $page, 10, $topics, $sources);
-                $results = $data['hits'] ?? [];
-                $total = $data['total_hits'] ?? 0;
-                $totalPages = $data['total_pages'] ?? 0;
-            } catch (\Throwable) {
-                $error = true;
-            }
-        }
+            $filters = new SearchFilters(
+                topics: $topic !== '' ? [$topic] : [],
+                contentType: $contentType,
+            );
 
-        // Build topic facets from hit data (API doesn't return aggregated facets)
-        $topicCounts = [];
-        foreach ($results as $hit) {
-            foreach ($hit['topics'] ?? [] as $topic) {
-                $topicCounts[$topic] = ($topicCounts[$topic] ?? 0) + 1;
-            }
+            $result = $this->search->search(new SearchRequest(
+                query: $searchQuery,
+                filters: $filters,
+                page: $page,
+                pageSize: 10,
+            ));
         }
-        arsort($topicCounts);
 
         $html = $this->twig->render('search.html.twig', [
             'query' => $searchQuery,
-            'results' => $results,
-            'total' => $total,
-            'page' => $page,
-            'totalPages' => $totalPages,
-            'topicCounts' => $topicCounts,
-            'activeTopics' => $topics,
-            'activeSources' => $sources,
-            'error' => $error,
+            'result' => $result,
+            'activeType' => $contentType,
+            'activeTopic' => $topic,
         ]);
 
         return new SsrResponse(content: $html);

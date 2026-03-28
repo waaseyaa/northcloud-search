@@ -12,10 +12,7 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progre
 
 COPY . .
 
-# Run install to create sqlite DB and initial config
-RUN php bin/waaseyaa install --no-interaction 2>/dev/null || true
-
-ENV NORTHCLOUD_API_URL=http://search:8092
+RUN mkdir -p storage && chmod 777 storage
 
 EXPOSE 3003
 

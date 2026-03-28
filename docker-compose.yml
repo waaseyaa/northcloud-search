@@ -1,0 +1,33 @@
+services:
+  web:
+    build: .
+    ports:
+      - "3003:3003"
+    volumes:
+      - search-data:/app/storage
+    environment:
+      - REDIS_URL=tcp://redis:6379
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  subscriber:
+    build: .
+    command: ["php", "bin/waaseyaa", "app:subscribe", "--redis-url=tcp://redis:6379"]
+    volumes:
+      - search-data:/app/storage
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  search-data:

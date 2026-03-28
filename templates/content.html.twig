@@ -1,0 +1,45 @@
+{% extends "base.html.twig" %}
+
+{% block title %}{{ item.title }} — North Cloud{% endblock %}
+
+{% block body %}
+<main>
+  <div class="container">
+    <article class="content-detail">
+      <header>
+        <span class="badge badge-{{ item.content_type }}">{{ item.content_type }}</span>
+        <h1>{{ item.title }}</h1>
+        <div class="meta">
+          <span>{{ item.source_name }}</span>
+          <time datetime="{{ item.created_at }}">{{ item.created_at|date('M j, Y') }}</time>
+          {% if item.quality_score > 0 %}
+            <span>Quality: {{ item.quality_score }}/100</span>
+          {% endif %}
+        </div>
+      </header>
+
+      {% if item.og_image %}
+        <img src="{{ item.og_image }}" alt="{{ item.title }}" class="content-image" loading="lazy">
+      {% endif %}
+
+      <div class="content-body">
+        {{ item.body|nl2br }}
+      </div>
+
+      {% if item.topics is not empty %}
+        <div class="topics-list">
+          {% for topic in item.topics %}
+            <a href="/search?topic={{ topic }}" class="topic-pill">{{ topic|replace({'_': ' '}) }}</a>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if item.url %}
+        <div class="source-link">
+          <a href="{{ item.url }}" target="_blank" rel="noopener">View original source &rarr;</a>
+        </div>
+      {% endif %}
+    </article>
+  </div>
+</main>
+{% endblock %}

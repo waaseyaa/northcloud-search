@@ -1,79 +1,63 @@
 {% extends "base.html.twig" %}
 
-{% block title %}North Cloud — Content Intelligence{% endblock %}
-
-{% block styles %}
-    .hero { padding: 80px 0 40px; text-align: center; }
-    .hero h1 { font-size: 2.5rem; font-weight: 700; color: #f8fafc; margin-bottom: 8px; }
-    .hero p { font-size: 1.1rem; color: #94a3b8; margin-bottom: 32px; }
-    .hero .search-wrap { max-width: 600px; margin: 0 auto; }
-
-    .topics { padding: 32px 0; }
-    .topics-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin-bottom: 12px; }
-    .topic-pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
-    .topic-pill {
-      display: inline-block; padding: 6px 16px;
-      border: 1px solid #334155; border-radius: 9999px;
-      font-size: 0.85rem; color: #cbd5e1;
-      transition: border-color 0.2s, color 0.2s;
-    }
-    .topic-pill:hover { border-color: #38bdf8; color: #38bdf8; text-decoration: none; }
-
-    .stories { padding: 40px 0; }
-    .stories h2 { font-size: 1.3rem; font-weight: 600; color: #f8fafc; margin-bottom: 20px; }
-    .story-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-    .story-card {
-      background: #1e293b; border: 1px solid #334155; border-radius: 8px;
-      padding: 20px; transition: border-color 0.2s;
-    }
-    .story-card:hover { border-color: #38bdf8; text-decoration: none; }
-    .story-card h3 { font-size: 0.95rem; font-weight: 600; color: #f8fafc; margin-bottom: 6px; line-height: 1.4; }
-    .story-card .meta { font-size: 0.8rem; color: #64748b; }
-    .no-stories { color: #475569; text-align: center; padding: 40px 0; }
-{% endblock %}
+{% block title %}North Cloud — Content Pipeline Search{% endblock %}
 
 {% block body %}
 <main>
   <section class="hero">
     <div class="container">
       <h1>North Cloud</h1>
-      <p>Search across 100,000+ classified articles from Northern Ontario and beyond</p>
+      <p>Search across the entire content pipeline — articles, recipes, jobs, RFPs, and more.</p>
       <form action="/search" method="get" class="search-wrap">
-        <input type="text" name="q" class="search-input" placeholder="Start typing to search..." autocomplete="off" id="search-input">
+        <input type="text" name="q" class="search-input" placeholder="Search content..." autocomplete="off" id="search-input">
         <div class="suggest-dropdown" id="suggest-dropdown"></div>
       </form>
     </div>
   </section>
 
-  <section class="topics">
-    <div class="container" style="text-align: center;">
-      <div class="topics-title">Trending Topics</div>
-      <div class="topic-pills">
-        {% for slug, label in topics %}
-          <a href="/search?q=*&topics={{ slug }}" class="topic-pill">{{ label }}</a>
+  {% if typeCounts is not empty %}
+  <section style="padding: 32px 0;">
+    <div class="container">
+      <h2 class="section-title">Indexed Content</h2>
+      <div class="stat-grid">
+        {% for type, count in typeCounts %}
+          <a href="/search?q=&type={{ type }}" class="stat-card">
+            <span class="stat-count">{{ count|number_format }}</span>
+            <span class="stat-label">{{ type|replace({'_': ' '})|capitalize }}s</span>
+          </a>
         {% endfor %}
       </div>
     </div>
   </section>
+  {% endif %}
 
-  {% if topStories is not empty %}
-  <section class="stories">
+  {% if recentItems is not empty %}
+  <section style="padding: 32px 0;">
     <div class="container">
-      <h2>Top Stories</h2>
-      <div class="story-grid">
-        {% for story in topStories %}
-        <a href="{{ story.url }}" target="_blank" rel="noopener" class="story-card">
-          <h3>{{ story.title }}</h3>
-          <div class="meta">{{ story.source_name|default('Unknown') }}{% if story.published_date %} &middot; {{ story.published_date }}{% endif %}</div>
-        </a>
+      <h2 class="section-title">Recently Indexed</h2>
+      <div class="card-grid">
+        {% for item in recentItems %}
+          <article class="content-card">
+            {% if item.og_image %}
+              <img src="{{ item.og_image }}" alt="" class="card-thumb" loading="lazy">
+            {% endif %}
+            <div class="card-body">
+              <span class="badge badge-{{ item.content_type }}">{{ item.content_type }}</span>
+              <h3><a href="/content/{{ item.document_id }}">{{ item.title }}</a></h3>
+              <div class="card-meta">
+                <span>{{ item.source_name }}</span>
+                <time datetime="{{ item.created_at }}">{{ item.created_at|date('M j, Y') }}</time>
+              </div>
+            </div>
+          </article>
         {% endfor %}
       </div>
     </div>
   </section>
   {% else %}
-  <section class="stories">
+  <section class="empty-state">
     <div class="container">
-      <div class="no-stories">Top stories will appear here once connected to the search API.</div>
+      <p>No content indexed yet. The Redis subscriber will populate search results as content flows through the pipeline.</p>
     </div>
   </section>
   {% endif %}
