@@ -36,10 +36,15 @@ final class SubscribeCommand extends Command
         $redisUrl = $input->getOption('redis-url') ?: getenv('REDIS_URL') ?: 'tcp://127.0.0.1:6379';
         $channelPatterns = explode(',', $input->getOption('channels'));
 
-        $output->writeln(sprintf('<info>Connecting to Redis at %s...</info>', $redisUrl));
+        $output->writeln(sprintf('<info>Connecting to Redis...</info>'));
         $output->writeln(sprintf('<info>Subscribing to: %s</info>', implode(', ', $channelPatterns)));
 
-        $redis = new RedisClient($redisUrl);
+        $params = array_merge(parse_url($redisUrl) ?: [], ['read_write_timeout' => 0]);
+        if (isset($params['pass'])) {
+            $params['password'] = $params['pass'];
+            unset($params['pass']);
+        }
+        $redis = new RedisClient($params);
 
         $pubsub = $redis->pubSubLoop();
         foreach ($channelPatterns as $pattern) {
