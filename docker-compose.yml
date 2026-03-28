@@ -7,6 +7,7 @@ services:
       - search-data:/app/storage
     environment:
       - REDIS_URL=tcp://redis:6379
+      - WAASEYAA_DEBUG=${WAASEYAA_DEBUG:-false}
     depends_on:
       - redis
     healthcheck:

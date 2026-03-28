@@ -36,7 +36,7 @@ final class ContentController
 
         if ($rows === []) {
             $html = $this->twig->render('404.html.twig', ['path' => "/content/$id"]);
-            return new SsrResponse(content: $html, status: 404);
+            return new SsrResponse(content: $html, statusCode: 404);
         }
 
         $item = $rows[0];
